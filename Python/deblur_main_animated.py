@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
 from scipy.fft import fft
 from scipy.linalg import inv
 
@@ -22,7 +23,7 @@ algo_config = {
     'sigmoid_factor': -1,    # Steepness factor for sigmoid transform
     'lambda': 1e-6,          # Regularization parameter for Gauss-Newton optimization
     'p_norm': 256,           # p-norm value for optimization (should be even)
-    'animate': False,         # Whether to show animation of optimization process
+    'animate': True,         # Whether to show animation of optimization process
     'max_iter_per_mode_stag': 300, # Maximum iterations to run before recovering from stagnation
     'max_iter_per_mode': 500 # Maximum iterations before switching modes
 }
@@ -47,10 +48,7 @@ def generate_multisine_signal(amplitudes, frequencies, phases, time_vector):
     time_vector = np.array(time_vector).reshape(1, -1)  # 1xM
 
     # Generate the multisine signal
-    # This will create an NxM matrix, which we then sum along axis 0 to get a 1xM vector
     return np.sum(amplitudes * np.cos(2*np.pi*frequencies@time_vector + phases), axis=0)
-
-
 
 def calculate_crest_factor(signal):
     return np.max(np.abs(signal)) / np.sqrt(np.mean(signal**2))
@@ -100,7 +98,6 @@ ModeName = ['Sigmoid Transform', 'Gauss-Newton']
 
 # Set up animation
 if algo_config['animate']:
-    plt.ion()
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
     line_initial, = ax1.plot(time_vector, initial_signal, 'b')
     line_current, = ax1.plot(time_vector, initial_signal, 'r')
@@ -123,7 +120,9 @@ if algo_config['animate']:
 
 current_signal = initial_signal.copy()
 
-for iteration in range(algo_config['max_iterations']):
+def update_animation(iteration):
+    global current_mode, stagnation_counter, mode_counter, previous_crest_factor, current_signal
+
     if current_mode == 0:
         # Sigmoid transform optimization
         transformed_signal = sigmoid_transform(current_signal, algo_config['sigmoid_factor'])
@@ -188,7 +187,13 @@ for iteration in range(algo_config['max_iterations']):
         ax2.autoscale_view()
         text.set_text(f'Iteration: {iteration}, Mode: {ModeName[current_mode]}, Current CF: {current_crest_factor:.4f}, Best CF: {optimization_results["best_crest_factor"]:.4f}')
         plt.draw()
-        plt.pause(0.001)
+
+if algo_config['animate']:
+    ani = FuncAnimation(fig, update_animation, frames=algo_config['max_iterations'], repeat=False)
+    plt.show()
+else:
+    for iteration in range(algo_config['max_iterations']):
+        update_animation(iteration)
 
 # %% Generate final optimized signal
 optimized_signal = generate_multisine_signal(amplitude_vector, frequencies, optimization_results['best_phases'], time_vector)
