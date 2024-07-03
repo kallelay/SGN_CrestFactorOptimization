@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This repository contains implementations of the "Deblur" algorithm for crest factor optimization of multisine signals. The algorithm combines sigmoid transform and Gauss-Newton optimization to minimize the crest factor, resulting in more efficient use of the signal's dynamic range.
+This repository contains implementations of the "Deblur" (Official name: Sigmoid Transform time-frequency domain swapping - Gauss Newton algorithm Lp minimization) for crest factor optimization of multisine signals. The algorithm combines sigmoid transform and Gauss-Newton optimization to minimize the crest factor, resulting in more efficient use of the signal's dynamic range.
 
 ## Implementations
 
