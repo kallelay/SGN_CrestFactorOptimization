@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crest Factor Optimization for Multisine Signals</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.20.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f8ff;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        .section {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .chart-container {
+            width: 100%;
+            height: 400px;
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .slider-container {
+            margin-bottom: 20px;
+        }
+        .slider-container label {
+            display: inline-block;
+            width: 200px;
+        }
+        input[type="range"] {
+            width: 300px;
+        }
+        .code {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 15px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+
+
+        #steps-container {
+            overflow: hidden;
+            position: relative;
+            width: 100%;
+        }
+        .step {
+            width: 100%;
+            position: absolute;
+            transition: transform 0.5s ease, opacity 0.5s ease;
+            opacity: 0;
+            transform: translateX(100%);
+        }
+        .step.active {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .step.prev {
+            transform: translateX(-100%);
+        }
+    </style>
+  
+     <br/><button onclick="window.location='./index.html'">&larr; Back</button>
+</head>
+<body>
+    <h1>Crest Factor Optimization for Multisine Signals</h1>
+
+    <div id="introduction" class="section">
+        <h2>1. Introduction</h2>
+        <p>Crest factor optimization is a crucial technique in signal processing, particularly for multisine signals used in system identification and control. The crest factor is defined as the ratio of a signal's peak value to its root mean square (RMS) value:</p>
+        <p style="text-align: center;"><strong>Crest Factor = Peak Value / RMS Value</strong></p>
+        <p>A lower crest factor is desirable because it allows for more efficient use of the available dynamic range in measurement systems and power amplifiers. This optimization process involves adjusting the phases of the individual sine components in a multisine signal to minimize the overall crest factor.</p>
+        <p>Key features of this optimization method include:</p>
+        <ul>
+            <li>Combination of sigmoid transform and Gauss-Newton optimization</li>
+            <li>Frequency bin optimization for improved frequency resolution</li>
+            <li>Adaptive switching between optimization modes</li>
+            <li>Configurable parameters for fine-tuning the optimization process</li>
+        </ul>
+        <p>In the following sections, we'll explore the steps of the optimization process, provide an interactive demo, and dive into the implementation details.</p>
+
+
+    <div class="nav-buttons">
+        <button onclick="showSection('steps')">Next: Steps</button>
+    </div>
+
+
+    </div>
+
+
+
+        <div id="steps" class="section" style="display: none;">
+            <h2>2. Steps of Crest Factor Optimization</h2>
+            <p>Explore how different parameters affect the signal and optimization process using the interactive sliders below.</p>
+
+            <div class="interactive-demo">
+                <h3>2.1. Signal Generation</h3>
+                <div class="slider-container">
+                    <label for="demo-num-frequencies">Number of Frequencies:</label>
+                    <input type="range" id="demo-num-frequencies" min="2" max="100" value="5">
+                    <span id="demo-num-frequencies-value">10</span>
+                </div>
+                <div class="slider-container">
+                    <label for="demo-max-frequency">Maximum Frequency (Hz):</label>
+                    <input type="range" id="demo-max-frequency" min="50" max="1000" value="100">
+                    <span id="demo-max-frequency-value">100</span>
+                </div>
+                <div id="signalChart" class="chart-container"></div>
+            </div>
+
+            <div class="interactive-demo">
+                <h3>2.2. Frequency Bin Optimization</h3>
+                <div class="explanation-box">
+    <h3>Frequency Bin Optimization in Multisine Signals</h3>
+    
+    <p>Frequency bin optimization is a crucial technique in generating multisine signals with improved spectral properties and potentially lower crest factors. This method aligns the component frequencies of the multisine signal with the discrete frequency bins of the Fast Fourier Transform (FFT).</p>
+
+    <h4>Key Concepts:</h4>
+    <ul>
+        <li><strong>FFT Frequency Resolution:</strong> The frequency resolution of an FFT is given by:</li>
+    </ul>
+    <p class="math-expression">Δf = f<sub>s</sub> / N</p>
+    <p>Where f<sub>s</sub> is the sampling frequency and N is the number of samples.</p>
+
+    <ul>
+        <li><strong>Frequency Alignment:</strong> Each component frequency is rounded to the nearest multiple of Δf.</li>
+        <li><strong>Benefits:</strong> 
+            <ul>
+                <li>Reduces spectral leakage</li>
+                <li>Improves frequency domain representation</li>
+                <li>Can lead to lower crest factors</li>
+            </ul>
+        </li>
+    </ul>
+
+    <h4>Implementation:</h4>
+    <pre><code>
+def optimize_frequencies(frequencies, fs, N):
+    Δf = fs / N
+    return [round(f / Δf) * Δf for f in frequencies]
+    </code></pre>
+
+    <p>This process ensures that each component of the multisine signal aligns precisely with an FFT bin, leading to a cleaner spectral representation and potentially improving the effectiveness of subsequent optimization steps.</p>
+
+    <div class="note">
+        <strong>Note:</strong> While frequency bin optimization can improve signal properties, it slightly alters the original frequency distribution. The trade-off between spectral clarity and frequency accuracy should be considered based on the specific application requirements.
+    </div>
+</div>
+
+<style>
+    .explanation-box {
+        background-color: #f0f8ff;
+        border: 1px solid #b0d4ff;
+        border-radius: 5px;
+        padding: 20px;
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+    .explanation-box h3 {
+        color: #2c3e50;
+        margin-top: 0;
+    }
+    .explanation-box h4 {
+        color: #3498db;
+        margin-top: 15px;
+    }
+    .explanation-box ul, .explanation-box ol {
+        padding-left: 20px;
+    }
+    .explanation-box li {
+        margin-bottom: 10px;
+    }
+    .math-expression {
+        font-style: italic;
+        text-align: center;
+        margin: 15px 0;
+        font-size: 1.1em;
+    }
+    .note {
+        background-color: #ffffd9;
+        border-left: 5px solid #ffeb3b;
+        padding: 10px;
+        margin-top: 15px;
+    }
+    pre {
+        background-color: #f5f5f5;
+        padding: 10px;
+        border-radius: 3px;
+        overflow-x: auto;
+    }
+</style>
+                <div class="slider-container">
+                    <label for="demo-sampling-rate">Sampling Rate (Hz):</label>
+                    <input type="range" id="demo-sampling-rate" min="500" max="5000" value="1000" step="100">
+                    <span id="demo-sampling-rate-value">1000</span>
+                </div>
+                <div class="checkbox-container">
+                    <input type="checkbox" id="demo-use-frequency-bin-optimization" checked disabled>
+                    <label for="demo-use-frequency-bin-optimization">Use Frequency Bin Optimization</label>
+                </div>
+                <!--<div id="frequencyBinChart" class="chart-container"></div>-->
+                <div id="timeDomainChart" class="chart-container"></div>
+                <div id="frequencyDomainChart" class="chart-container"></div>
+            </div>
+
+            <div class="interactive-demo">
+                <h3>2.3. Iterative Optimization</h3>
+                <h4>2.3.1. Sigmoid Transform Mode</h4>
+                <div class="explanation-box">
+    <h3>Sigmoid Transform in Crest Factor Optimization</h3>
+    
+    <p>The sigmoid transform is a crucial step in our crest factor optimization process. It helps reshape the signal's amplitude distribution, effectively reducing peak values while maintaining the overall signal characteristics.</p>
+    
+    <h4>Key Points:</h4>
+    <ul>
+        <li><strong>Definition:</strong> The sigmoid function is defined as:</li>
+    </ul>
+    
+    <p class="math-expression">f(x) = 1 / (1 + e<sup>-kx</sup>) - 0.5</p>
+    
+    <ul>
+        <li><strong>Effect:</strong> It compresses large amplitude values while leaving smaller values relatively unchanged.</li>
+        <li><strong>Tunability:</strong> The 'k' factor allows for adjusting the strength of the transformation.</li>
+        <li><strong>Preservation:</strong> It maintains the zero-crossing points of the original signal.</li>
+        <li><strong>Reversibility:</strong> The transform is invertible, allowing for signal reconstruction if needed.</li>
+    </ul>
+    
+    <h4>Process in Optimization:</h4>
+    <ol>
+        <li>Apply the sigmoid transform to the current signal.</li>
+        <li>Compute the Fourier transform of the transformed signal.</li>
+        <li>Extract new phase information from the Fourier transform.</li>
+        <li>Reconstruct the signal using the original frequencies and new phases.</li>
+    </ol>
+    
+    <p>This process helps to redistribute the signal energy, typically resulting in a lower crest factor. The sigmoid transform is particularly effective in the early stages of optimization, providing a good starting point for subsequent fine-tuning steps.</p>
+</div>
+
+<style>
+    .explanation-box {
+        background-color: #f0f8ff;
+        border: 1px solid #b0d4ff;
+        border-radius: 5px;
+        padding: 20px;
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+    .explanation-box h3 {
+        color: #2c3e50;
+        margin-top: 0;
+    }
+    .explanation-box h4 {
+        color: #3498db;
+        margin-top: 15px;
+    }
+    .explanation-box ul, .explanation-box ol {
+        padding-left: 20px;
+    }
+    .explanation-box li {
+        margin-bottom: 10px;
+    }
+    .math-expression {
+        font-style: italic;
+        text-align: center;
+        margin: 15px 0;
+        font-size: 1.1em;
+    }
+</style>
+                <div class="slider-container">
+                    <label for="demo-sigmoid-factor">Sigmoid Factor:</label>
+                    <input type="range" id="demo-sigmoid-factor" min="0.1" max="5" value="0.5" step="0.1">
+                    <span id="demo-sigmoid-factor-value">0.5</span>
+                </div>
+                    <label for="demo-sigmoid-factor-crestfactor">Crest Factor:</label>  <span id="demo-sigmoid-factor-crestfactor" class="badge bg-info"></span>
+                <div id="sigmoidChart" class="chart-container"></div>
+
+                <h4>2.3.2. Gauss-Newton Mode</h4>
+
+
+<div class="explanation-box">
+    <h3>The Role of p-norm in Gauss-Newton Optimization for Crest Factor Reduction</h3>
+    
+    <p>The p-norm plays a crucial role in the Gauss-Newton optimization process for crest factor reduction, particularly in approximating the maximum value of the signal. Here's why it's important:</p>
+    
+    <ol>
+        <li><strong>Approximation of Maximum:</strong> The p-norm, especially with higher values, provides a smooth approximation of the maximum value of a signal. As p approaches infinity, the p-norm converges to the true maximum.</li>
+        
+        <li><strong>Numerical Stability:</strong> Using the p-norm instead of directly working with the maximum allows for a more numerically stable optimization process. It provides a differentiable objective function, which is essential for gradient-based optimization methods like Gauss-Newton.</li>
+        
+        <li><strong>Tunability:</strong> The choice of p allows for fine-tuning the optimization process. Higher p values place more emphasis on larger signal values, pushing the optimization towards minimizing the peak values more aggressively.</li>
+        
+        <li><strong>Gradual Transition:</strong> By using the p-norm, we create a gradual transition between optimizing for average power (p = 2) and peak power (p → ∞). This allows the algorithm to balance between reducing overall signal variance and specifically targeting peak values.</li>
+        
+        <li><strong>Mathematical Expression:</strong> The p-norm provides a mathematical expression that approximates the maximum value while still being amenable to optimization techniques. It's defined as:</li>
+    </ol>
+    
+    <p class="math-expression">||x||<sub>p</sub> = (Σ|x<sub>i</sub>|<sup>p</sup>)<sup>1/p</sup></p>
+    
+    <p>In the context of crest factor optimization:</p>
+    <ul>
+        <li>As p increases, ||x||<sub>p</sub> approaches max(|x<sub>i</sub>|)</li>
+        <li>The optimization problem becomes: minimize ||x||<sub>p</sub> / ||x||<sub>2</sub></li>
+        <li>This formulation allows us to use calculus-based optimization methods on a well-behaved function</li>
+    </ul>
+    
+    <p>By leveraging the p-norm in this way, we can effectively target the reduction of peak values (which define the crest factor) while maintaining a mathematically tractable optimization problem. This approach bridges the gap between theoretical signal processing concepts and practical numerical optimization techniques.</p>
+</div>
+
+<style>
+    .explanation-box {
+        background-color: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 5px;
+        padding: 20px;
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+    .explanation-box h3 {
+        color: #2c3e50;
+        margin-top: 0;
+    }
+    .explanation-box ol, .explanation-box ul {
+        padding-left: 20px;
+    }
+    .explanation-box li {
+        margin-bottom: 10px;
+    }
+    .math-expression {
+        font-style: italic;
+        text-align: center;
+        margin: 15px 0;
+    }
+</style>
+
+
+                <div class="slider-container">
+                    <label for="demo-p-norm">p-norm:</label>
+                    <input type="range" id="demo-p-norm" min="2" max="1000" value="256" step="2">
+                    <span id="demo-p-norm-value">256</span>
+                </div>
+                <div id="gaussNewtonChart" class="chart-container"></div>
+            </div>
+
+            <!--<button id="demo-optimize-btn" onclick="runStepByStepOptimization()">Run Step-by-Step Optimization</button>-->
+            <div id="demo-optimization-info" style="display: none;">
+                <p>Step: <span id="demo-current-step"></span></p>
+                <p>Crest Factor: <span id="demo-current-crest-factor"></span></p>
+            </div>
+
+            <div class="nav-buttons">
+                <button onclick="showSection('introduction')">Previous: Introduction</button>
+                <button onclick="showSection('demo')">Next: Demo</button>
+            </div>
+           
+        </div>
+
+
+
+        <div id="demo" class="section" style="display: none;">
+     <h2>3. Interactive Demo</h2>
+     <a href='deblur_main.html' target=_blank>Click here for full screen</a>
+   <iframe src="deblur_main.html" frameborder=0 width='100%' height='1024px'></iframe>
+     <div class="nav-buttons">
+         <button onclick="showSection('steps')">Previous: Steps</button>
+         <button onclick="showSection('details')">Next: Details & Code</button>
+     </div>
+ </div>
+
+
+
+ <div id="details" class="section" style="display: none;">
+          <h2>4. Details & Code</h2>
+        <p>This section provides a simplified overview of the crest factor optimization algorithm. We'll examine key steps and their pseudo-code representations.</p>
+
+        <h3>4.1 Signal Generation</h3>
+        <p>We generate a multisine signal by combining multiple sine waves:</p>
+        <pre class="code">
+function generateMultisineSignal(frequencies, phases, time):
+    signal = []
+    for each t in time:
+        value = 0
+        for i = 0 to length(frequencies) - 1:
+            value += cos(2π * frequencies[i] * t + phases[i])
+        signal.append(value)
+    return signal
+        </pre>
+
+        <h3>4.2 Frequency Bin Optimization</h3>
+        <p>We adjust frequencies to align with FFT bins for better spectral properties:</p>
+        <pre class="code">
+function optimizeFrequencies(frequencies, samplingRate):
+    freqResolution = samplingRate / signalLength
+    for i = 0 to length(frequencies) - 1:
+        frequencies[i] = round(frequencies[i] / freqResolution) * freqResolution
+    return frequencies
+        </pre>
+
+        <h3>4.3 Sigmoid Transform</h3>
+        <p>We apply a sigmoid transform to reshape the signal amplitude distribution:</p>
+        <pre class="code">
+function sigmoidTransform(signal, factor):
+    for i = 0 to length(signal) - 1:
+        signal[i] = 1 / (1 + exp(-factor * signal[i])) - 0.5
+    return signal
+        </pre>
+
+        <h3>4.4 Gauss-Newton Optimization</h3>
+        <p>We use the Gauss-Newton method to optimize signal phases:</p>
+        <pre class="code">
+function gaussNewtonOptimization(signal, frequencies, phases):
+    calculate Jacobian matrix J
+    calculate residual vector r
+    solve (J^T * J) * Δphases = -J^T * r
+    update phases = phases + Δphases
+    return updated phases
+        </pre>
+
+        <h3>4.5 Crest Factor Calculation</h3>
+        <p>We calculate the crest factor as the ratio of peak to RMS value:</p>
+        <pre class="code">
+function calculateCrestFactor(signal):
+    peak = maximum absolute value in signal
+    rms = square root of (average of squared values in signal)
+    return peak / rms
+        </pre>
+
+        <h3>Optimization Process</h3>
+        <p>The overall optimization process alternates between sigmoid transform and Gauss-Newton steps:</p>
+        <pre class="code">
+while not converged and iterations < maxIterations:
+    if current step is 1:
+        apply sigmoid transform on multisine signal
+        Do FFT on the transformed signal
+        Inject the phases from excited frequencies into multisine
+    else:
+        apply Gauss-Newton optimization
+    update signal with new phases
+    calculate new crest factor
+    check for convergence
+        </pre>
+
+        <h3>Conclusion</h3>
+        <p>This simplified implementation combines sigmoid transform and Gauss-Newton optimization to minimize the crest factor of multisine signals. The process iteratively adjusts signal phases to achieve a lower peak-to-RMS ratio, resulting in a more efficient use of the signal's dynamic range.</p>
+
+
+        <p>The interactive nature of the demo allows users to experiment with different parameters and observe their effects on the optimization process, providing valuable insights into the behavior of multisine signals and crest factor optimization techniques.</p>
+
+
+            <div class="nav-buttons">
+                <button onclick="showSection('demo')">Previous: Demo</button>
+                <button onclick="showSection('introduction')">Back to Introduction</button>
+            </div>
+    </div>
+
+<!--------- html----------->
+
+
+
+
+
+
+
+    <div id="steps" class="section" style="display: none;"></div>
+    <div id="demo" class="section" style="display: none;"></div>
+    <div id="details" class="section" style="display: none;"></div>
+
+
+<!---- scriptme-->
+    <script>
+
+
+
+        ////gelpers
+        function linspace(start, end, num) {
+          if (num < 2) return num === 1 ? [start] : [];
+          const step = (end - start) / (num - 1);
+          return Array.from({length: num}, (_, i) => start + step * i);
+        }
+
+
+        function logspace(a, b, n) {
+          const logStart = a;
+          const logEnd = b;
+          const linArray = linspace(logStart, logEnd, n);
+          return linArray.map(x => Math.pow(10, x));
+        }
+
+
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(section => {
+                section.style.display = 'none';
+            });
+            document.getElementById(sectionId).style.display = 'block';
+        }
+
+
+          function showSection(sectionId) {
+              document.querySelectorAll('.section').forEach(section => {
+                  section.style.display = 'none';
+              });
+              document.getElementById(sectionId).style.display = 'block';
+
+              
+          }
+
+
+          // Update displayed values for sliders
+document.querySelectorAll('input[type="range"]').forEach(slider => {
+    slider.addEventListener('input', function() {
+        document.getElementById(`${this.id}-value`).textContent = this.value;
+    });
+});
+
+let isOptimizing = false;
+let optimizationInterval;
+let currentSignal, initialSignal, timeVector, frequencies;
+let currentPhases, bestPhases;
+let currentIteration = 0;
+let currentMode = 'Sigmoid Transform';
+
+function startOptimization() {
+    if (isOptimizing) return;
+
+    isOptimizing = true;
+    document.getElementById('optimize-btn').style.display = 'none';
+    document.getElementById('stop-btn').style.display = 'inline-block';
+    document.getElementById('optimization-info').style.display = 'block';
+
+    // Initialize optimization
+    const config = getConfiguration();
+    initializeOptimization(config);
+
+    // Start optimization loop
+    optimizationInterval = setInterval(optimizationStep, 50);
+}
+
+function stopOptimization() {
+    if (!isOptimizing) return;
+
+    clearInterval(optimizationInterval);
+    isOptimizing = false;
+    document.getElementById('optimize-btn').style.display = 'inline-block';
+    document.getElementById('stop-btn').style.display = 'none';
+}
+
+function getConfiguration() {
+    return {
+        minFrequency: parseFloat(document.getElementById('min-frequency').value),
+        maxFrequency: parseFloat(document.getElementById('max-frequency').value),
+        numFrequencies: parseInt(document.getElementById('num-frequencies').value),
+        numPeriods: parseInt(document.getElementById('num-periods').value),
+        samplingRate: parseFloat(document.getElementById('sampling-rate').value),
+        useFrequencyBinOptimization: document.getElementById('use-frequency-bin-optimization').checked,
+        maxIterations: parseInt(document.getElementById('max-iterations').value),
+        sigmoidFactor: parseFloat(document.getElementById('sigmoid-factor').value),
+        pNorm: parseInt(document.getElementById('p-norm').value),
+        animate: document.getElementById('animate').checked
+    };
+}
+
+function initializeOptimization(config) {
+    // Generate time vector
+    const signalLength = Math.ceil(config.numPeriods * config.samplingRate / config.minFrequency);
+    timeVector = math.range(0, signalLength).map(t => t / config.samplingRate);
+
+    // Generate frequencies
+    frequencies = generateOptimizedFrequencies(config);
+
+    // Initialize phases and generate initial signal
+    currentPhases = math.random([frequencies.length], 0, 2 * Math.PI);
+    initialSignal = generateMultisineSignal(frequencies, currentPhases, timeVector);
+    currentSignal = initialSignal.clone();
+
+    // Initialize plots
+    initializePlots();
+
+    // Reset optimization variables
+    currentIteration = 0;
+    bestPhases = currentPhases.slice();
+    updateOptimizationInfo();
+}
+
+function generateOptimizedFrequencies(config) {
+    const logFreqs = logspace(math.log10(config.minFrequency), math.log10(config.maxFrequency), config.numFrequencies);
+
+    if (config.useFrequencyBinOptimization) {
+        const fres = config.samplingRate / demoTimeVector.length;
+        return logFreqs.map(f => fres * Math.round(f / fres));
+    }
+
+    return logFreqs;
+}
+
+function generateMultisineSignal(frequencies, phases, timeVector) {
+    return timeVector.map(t =>
+        frequencies.reduce((sum, f, i) =>
+            sum + Math.cos(2 * Math.PI * f * t + phases[i]), 0)
+    );
+}
+
+function optimizationStep() {
+    if (currentIteration >= getConfiguration().maxIterations) {
+        stopOptimization();
+        return;
+    }
+
+    if (currentMode === 'Sigmoid Transform') {
+        sigmoidTransformStep();
+    } else {
+        gaussNewtonStep();
+    }
+
+    currentIteration++;
+    updateOptimizationInfo();
+    updatePlots();
+
+    // Switch modes if necessary
+    if (currentIteration % 10 === 0) {
+        currentMode = (currentMode === 'Sigmoid Transform') ? 'Gauss-Newton' : 'Sigmoid Transform';
+    }
+}
+
+function sigmoidTransformStep() {
+    const sigmoidFactor = getConfiguration().sigmoidFactor;
+    const transformedSignal = currentSignal.map(x => 1 / (1 + Math.exp(-sigmoidFactor * x)) - 0.5) ;
+    const fftResult = math.fft(transformedSignal);
+    currentPhases = frequencies.map((f, i) => Math.atan2(fftResult[i].im, fftResult[i].re));
+    currentSignal = generateMultisineSignal(frequencies, currentPhases, timeVector);
+}
+
+function gaussNewtonStep() {
+    const config = getConfiguration();
+    const q = config.pNorm / 2;
+   // const jacobian = calculateJacobian(currentSignal, frequencies, currentPhases, timeVector, q);
+
+    const jacobian = phaseDerivative(currentPhases, currentSignal, timeVector, q,  frequencies);
+    const residual = currentSignal.map(x => Math.pow(Math.abs(x), q));
+
+    const JT = math.transpose(jacobian);
+    const JTJ = math.add(math.multiply(JT, jacobian), math.identity(frequencies.length));
+    const JTr = math.multiply(JT, residual);
+    const update = math.lusolve(JTJ, JTr);
+
+    currentPhases = currentPhases.map((phase, i) => phase - update[i]);
+    currentSignal = generateMultisineSignal(frequencies, currentPhases, timeVector);
+}
+
+function calculateJacobian(signal, frequencies, phases, timeVector, q) {
+    return timeVector.map(t =>
+        frequencies.map((f, i) =>
+            -q * Math.pow(Math.abs(signal[t]), q - 1) *
+            Math.sin(2 * Math.PI * f * t + phases[i])
+        )
+    );
+}
+
+function updateOptimizationInfo() {
+    document.getElementById('current-mode').textContent = currentMode;
+    document.getElementById('initial-crest-factor').textContent = calculateCrestFactor(initialSignal).toFixed(4);
+    document.getElementById('current-crest-factor').textContent = calculateCrestFactor(currentSignal).toFixed(4);
+    document.getElementById('best-crest-factor').textContent = calculateCrestFactor(generateMultisineSignal(frequencies, bestPhases, timeVector)).toFixed(4);
+    document.getElementById('current-iter').textContent = `${currentIteration} / ${getConfiguration().maxIterations}`;
+}
+
+function calculateCrestFactor(signal) {
+    const peak = Math.max(...signal.map(Math.abs));
+    const rms = Math.sqrt(signal.reduce((sum, x) => sum + x * x, 0) / signal.length);
+    return peak / rms;
+}
+
+function initializePlots() {
+    Plotly.newPlot('signal-plot', [
+        {y: initialSignal, name: 'Initial Signal'},
+        {y: currentSignal, name: 'Current Signal'}
+    ], {
+        title: 'Multisine Signal',
+        xaxis: {title: 'Time'},
+        yaxis: {title: 'Amplitude'}
+    });
+
+    Plotly.newPlot('crest-factor-plot', [
+        {x: [0], y: [calculateCrestFactor(initialSignal)], name: 'Crest Factor'}
+    ], {
+        title: 'Crest Factor History',
+        xaxis: {title: 'Iteration'},
+        yaxis: {title: 'Crest Factor'}
+    });
+}
+
+function updatePlots() {
+    if (!getConfiguration().animate) return;
+
+    Plotly.update('signal-plot', {y: [initialSignal, currentSignal]}, {}, [0, 1]);
+    Plotly.extendTraces('crest-factor-plot', {
+        x: [[currentIteration]],
+        y: [[calculateCrestFactor(currentSignal)]]
+    }, [0]);
+}
+
+
+
+
+/////steps:
+
+
+    let demoSignal, demoFrequencies, demoPhases, demoTimeVector;
+    let demoCharts = {};
+
+    function initializeDemoCharts() {
+        const chartConfigs = {
+            signalChart: { title: 'Multisine Signal', yaxis: { title: 'Amplitude' } },
+            sigmoidChart: { title: 'Sigmoid Transform', yaxis: { title: 'Transformed Amplitude' } },
+            gaussNewtonChart: { title: 'Gauss-Newton Optimization', yaxis: { title: 'Amplitude' } }
+        };
+
+        for (const [chartId, config] of Object.entries(chartConfigs)) {
+            const layout = {
+                title: config.title,
+                xaxis: { title: 'Time' },
+                yaxis: config.yaxis,
+                height: 400,
+                margin: { l: 50, r: 50, b: 50, t: 50, pad: 4 }
+            };
+
+            Plotly.newPlot(chartId, [{ x: [], y: [], type: 'scatter', mode: 'lines' }], layout);
+        }
+    }
+
+    function updateDemoSignal() {
+        const numFrequencies = parseInt(document.getElementById('demo-num-frequencies').value);
+        const maxFrequency = parseInt(document.getElementById('demo-max-frequency').value);
+        const samplingRate = parseInt(document.getElementById('demo-sampling-rate').value);
+        const useFrequencyBinOptimization = document.getElementById('demo-use-frequency-bin-optimization').checked;
+
+        demoTimeVector = math.range(0, 1, 1/samplingRate).toArray();
+        demoFrequencies = generateDemoFrequencies(numFrequencies, maxFrequency, samplingRate, useFrequencyBinOptimization);
+        demoPhases = math.random([numFrequencies], 0, 2 * Math.PI);
+        demoSignal = generateMultisineSignal(demoFrequencies, demoPhases, demoTimeVector);
+
+        updateSignalChart();
+        updateFrequencyBinChart();
+    }
+
+    function generateDemoFrequencies(numFrequencies, maxFrequency, samplingRate, useOptimization) {
+        const logFreqs  = logspace(math.log10(1), math.log10(maxFrequency), numFrequencies);
+
+        if (useOptimization) {
+            const fres = samplingRate / demoTimeVector.length;
+            return logFreqs.map(f => fres * Math.round(f / fres));
+        }
+
+        return logFreqs;
+    }
+
+    function updateSignalChart() {
+        Plotly.react('signalChart', [{
+            x: demoTimeVector,
+            y: demoSignal,
+            type: 'scatter',
+            mode: 'lines',
+            name: 'Signal'
+        }]);
+    }
+
+    function updateFrequencyBinChart() {
+        const fftResult = math.fft(demoSignal);
+        const magnitudes = fftResult.slice(0, fftResult.length / 2).map(c => math.abs(c));
+        const freqBins = math.range(0, magnitudes.length).map(i => i * (demoTimeVector.length / demoTimeVector[demoTimeVector.length - 1]) / demoSignal.length);
+
+        /*Plotly.react('frequencyBinChart', [{
+            x: freqBins,
+            y: magnitudes,
+            type: 'scatter',
+            mode: 'lines',
+            name: 'Magnitude Spectrum'
+        }]);*/
+    }
+
+    function updateSigmoidChart() {
+        const sigmoidFactor = parseFloat(document.getElementById('demo-sigmoid-factor').value);
+        const transformedSignal = math.multiply(demoSignal.map(x => 1 / (1 + Math.exp(-sigmoidFactor * x)) - 0.5), math.max(demoSignal.map(x=>math.abs(x)))) ;
+
+
+        document.getElementById('demo-sigmoid-factor-crestfactor').textContent = calculateCrestFactor(transformedSignal).toFixed(4) + ", Original: " +  calculateCrestFactor(demoSignal).toFixed(4) ;
+
+        Plotly.react('sigmoidChart', [
+            {
+                x: demoTimeVector,
+                y: demoSignal,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Original Signal'
+            },
+            {
+                x: demoTimeVector,
+                y: transformedSignal,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Transformed Signal'
+            }
+        ]);
+    }
+
+          function phaseDerivative( phases, signal, time, q, frequencies) {
+    const N = phases.length;
+    const M = time.length;
+    const result = [];
+
+    for (let j = 0; j < M; j++) {
+        const row = [];
+        for (let i = 0; i < N; i++) {
+            const angle = 2 * Math.PI * frequencies[i] * time[j] + phases[i];
+            row.push(-q * Math.pow(signal[j], q - 1) * Math.sin(angle));
+        }
+        result.push(row);
+    }
+
+    return math.matrix(result);
+}
+
+    function updateGaussNewtonChart() {
+        const pNorm = parseInt(document.getElementById('demo-p-norm').value);
+        const q = pNorm / 2;
+
+
+
+
+    const jacobian = phaseDerivative(demoPhases, demoSignal, demoTimeVector, q,  demoFrequencies);
+        //const jacobian = calculateJacobian(demoSignal, demoFrequencies, demoPhases, demoTimeVector, q);
+        const residual = demoSignal.map(x => Math.pow(Math.abs(x), q));
+
+        const JT = math.transpose(jacobian);
+        const JTJ = math.add(math.multiply(JT, jacobian), math.identity(demoFrequencies.length));
+        const JTr = math.multiply(JT, residual);
+        const update = math.lusolve(JTJ, JTr);
+
+        const newPhases = demoPhases.map((phase, i) => phase - update._data[i][0]);
+        const optimizedSignal = generateMultisineSignal(demoFrequencies, newPhases, demoTimeVector);
+
+
+        Plotly.react('gaussNewtonChart', [
+            {
+                x: demoTimeVector,
+                y: residual,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'p-norm'
+            }
+        ], {
+            title: 'p-Norm Influence',
+            xaxis: { title: 'Time' },
+            yaxis: { title: 'p-Norm Value', type: 'log' }
+        });
+}
+
+    function runStepByStepOptimization() {
+        let currentStep = 0;
+        const steps = [
+            { name: 'Initial Signal', action: updateSignalChart },
+            { name: 'Frequency Bin Optimization', action: updateFrequencyBinChart },
+            { name: 'Sigmoid Transform', action: updateSigmoidChart },
+            { name: 'Gauss-Newton Optimization', action: updateGaussNewtonChart }
+        ];
+
+        function runNextStep() {
+            if (currentStep < steps.length) {
+                const step = steps[currentStep];
+                document.getElementById('demo-current-step').textContent = step.name;
+                step.action();
+                document.getElementById('demo-current-crest-factor').textContent = calculateCrestFactor(demoSignal).toFixed(4);
+                currentStep++;
+                setTimeout(runNextStep, 2000);
+            } else {
+                document.getElementById('demo-optimize-btn').style.display = 'inline-block';
+                document.getElementById('demo-optimization-info').style.display = 'none';
+            }
+        }
+
+        document.getElementById('demo-optimize-btn').style.display = 'none';
+        document.getElementById('demo-optimization-info').style.display = 'block';
+        runNextStep();
+    }
+
+    // Event listeners for demo sliders
+    document.getElementById('demo-num-frequencies').addEventListener('input', function() {
+        document.getElementById('demo-num-frequencies-value').textContent = this.value;
+        updateDemoSignal();
+           updateFrequencyBinCharts();
+    });
+
+    document.getElementById('demo-max-frequency').addEventListener('input', function() {
+        document.getElementById('demo-max-frequency-value').textContent = this.value;
+        updateDemoSignal();
+           updateFrequencyBinCharts();
+    });
+
+    document.getElementById('demo-sampling-rate').addEventListener('input', function() {
+        document.getElementById('demo-sampling-rate-value').textContent = this.value;
+        updateDemoSignal();
+           updateFrequencyBinCharts();
+    });
+
+    document.getElementById('demo-use-frequency-bin-optimization').addEventListener('change', updateDemoSignal);
+
+    document.getElementById('demo-sigmoid-factor').addEventListener('input', function() {
+        document.getElementById('demo-sigmoid-factor-value').textContent = this.value;
+        updateSigmoidChart();
+    });
+
+    document.getElementById('demo-p-norm').addEventListener('input', function() {
+        document.getElementById('demo-p-norm-value').textContent = this.value;
+        updateGaussNewtonChart();
+    });
+
+
+
+///-----aa
+let currentStepIndex = 0;
+       const totalSteps = 5;
+
+       function initializeSteps() {
+           document.querySelectorAll('.step').forEach((step, index) => {
+               if (index === 0) {
+                   step.classList.add('active');
+               } else {
+                   step.classList.add('next');
+               }
+           });
+        ///   updateStepButtons();
+       }
+
+       function changeStep(direction) {
+           const steps = document.querySelectorAll('.step');
+           const oldStep = steps[currentStepIndex];
+           currentStepIndex += direction;
+           const newStep = steps[currentStepIndex];
+
+           oldStep.classList.remove('active');
+           oldStep.classList.add(direction > 0 ? 'prev' : 'next');
+
+           newStep.classList.remove('prev', 'next');
+           newStep.classList.add('active');
+
+          // updateStepButtons();
+           updateChartForStep(currentStepIndex);
+       }
+
+      /* function updateStepButtons() {
+           document.getElementById('prev-step').disabled = currentStepIndex === 0;
+           document.getElementById('next-step').disabled = currentStepIndex === totalSteps - 1;
+       }*/
+
+       function updateChartForStep(stepIndex) {
+           switch(stepIndex) {
+               case 0:
+                   updateSignalChart();
+                   break;
+               case 1:
+                   updateFrequencyBinChart();
+                   break;
+               case 2:
+                   updateSigmoidChart();
+                   break;
+               case 3:
+                   updateGaussNewtonChart();
+                   break;
+           }
+       }
+
+       function showSection(sectionId) {
+           document.querySelectorAll('.section').forEach(section => {
+               section.style.display = 'none';
+           });
+           document.getElementById(sectionId).style.display = 'block';
+
+           if (sectionId === 'steps') {
+               initializeSteps();
+               updateChartForStep(0);
+               updateDemoSignal();
+              updateFrequencyBinCharts();
+              updateSigmoidChart();
+              updateGaussNewtonChart();
+           }
+       }
+
+       // Event listeners for demo sliders
+       document.getElementById('demo-num-frequencies').addEventListener('input', function() {
+           document.getElementById('demo-num-frequencies-value').textContent = this.value;
+           updateDemoSignal();
+           updateFrequencyBinCharts();
+       });
+
+       document.getElementById('demo-max-frequency').addEventListener('input', function() {
+           document.getElementById('demo-max-frequency-value').textContent = this.value;
+           updateDemoSignal();
+           updateFrequencyBinCharts();
+       });
+
+       document.getElementById('demo-sampling-rate').addEventListener('input', function() {
+           document.getElementById('demo-sampling-rate-value').textContent = this.value;
+           updateDemoSignal();
+           updateFrequencyBinCharts();
+       });
+
+       document.getElementById('demo-use-frequency-bin-optimization').addEventListener('change', updateDemoSignal);
+
+       document.getElementById('demo-sigmoid-factor').addEventListener('input', function() {
+           document.getElementById('demo-sigmoid-factor-value').textContent = this.value;
+           updateSigmoidChart();
+       });
+
+       document.getElementById('demo-p-norm').addEventListener('input', function() {
+           document.getElementById('demo-p-norm-value').textContent = this.value;
+           updateGaussNewtonChart();
+       });
+
+
+       function updateFrequencyBinCharts() {
+                  const numFrequencies = parseInt(document.getElementById('demo-num-frequencies').value);
+                  const maxFrequency = parseInt(document.getElementById('demo-max-frequency').value);
+                  const samplingRate = parseInt(document.getElementById('demo-sampling-rate').value);
+                  const useFrequencyBinOptimization = document.getElementById('demo-use-frequency-bin-optimization').checked;
+
+                  const timeVector = math.range(0, 1, 1/samplingRate).toArray();
+
+                  // Generate frequencies without optimization
+                  const freqsWithout = logspace(math.log10(1), math.log10(maxFrequency), numFrequencies);
+
+                  // Generate frequencies with optimization
+                  const freqsWith = generateDemoFrequencies(numFrequencies, maxFrequency, samplingRate, true);
+
+                  // Generate signals
+                  const phasesWithout = math.random([numFrequencies], 0, 2 * Math.PI);
+                  const phasesWith = math.random([numFrequencies], 0, 2 * Math.PI);
+                  const signalWithout = generateMultisineSignal(freqsWithout, phasesWithout, timeVector);
+                  const signalWith = generateMultisineSignal(freqsWith, phasesWith, timeVector);
+
+                  // Compute FFT
+                  const fftWithout = math.fft(signalWithout);
+                  const fftWith = math.fft(signalWith);
+                  const magnitudesWithout = fftWithout.slice(0, fftWithout.length / 2).map(c => math.abs(c));
+                  const magnitudesWith = fftWith.slice(0, fftWith.length / 2).map(c => math.abs(c));
+                  const freqBins = math.range(0, magnitudesWithout.length).map(i => i * (samplingRate / signalWithout.length));
+
+                  // Update Time Domain Chart
+                  Plotly.newPlot('timeDomainChart', [
+                      {
+                          x: timeVector,
+                          y: signalWithout,
+                          type: 'scatter',
+                          mode: 'lines',
+                          name: 'Without Optimization'
+                      },
+                      {
+                          x: timeVector,
+                          y: signalWith,
+                          type: 'scatter',
+                          mode: 'lines',
+                          name: 'With Optimization'
+                      }
+                  ], {
+                      title: 'Time Domain Comparison',
+                      xaxis: { title: 'Time (s)' },
+                      yaxis: { title: 'Amplitude' }
+                  });
+
+                  // Update Frequency Domain Chart
+                  Plotly.newPlot('frequencyDomainChart', [
+                      {
+                          x: freqBins,
+                          y: magnitudesWithout,
+                          type: 'scatter',
+                          mode: 'lines',
+                          name: 'Without Optimization'
+                      },
+                      {
+                          x: freqBins,
+                          y: magnitudesWith,
+                          type: 'scatter',
+                          mode: 'lines',
+                          name: 'With Optimization'
+                      }
+                  ], {
+                      title: 'Frequency Domain Comparison',
+                      xaxis: { title: 'Frequency (Hz)', type: 'log' },
+                      yaxis: { title: 'Magnitude' }
+                  });
+              }
+
+
+               // Initialize demo charts and signal
+               initializeDemoCharts();
+               updateDemoSignal();
+updateFrequencyBinCharts();
+
+
+
+    </script>
+</body>
+<footer>   <span style='font-size:9pt'>Linked article: <a href='https://www.mdpi.com/2313-0105/8/10/176'>Kallel, A.Y.; Kanoun, O. Crest Factor Optimization for Multisine Excitation Signals with Logarithmic Frequency Distribution Based on a Hybrid Stochastic-Deterministic Optimization Algorithm. Batteries 2022, 8, 176. https://doi.org/10.3390/batteries8100176</a></span></footer>
+</html>
